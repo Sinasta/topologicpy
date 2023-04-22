@@ -5168,7 +5168,7 @@ class Topology():
         """
         if not isinstance(topology, topologic.Topology):
             return None
-        return topologic.Topology.String(topology, version)
+        return topologic.Topology.String(topology)
     
     @staticmethod
     def Vertices(topology):

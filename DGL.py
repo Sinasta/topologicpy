@@ -664,7 +664,7 @@ class _RegressorKFold:
         torch.manual_seed(42)
         
         # Define the K-fold Cross Validator
-        kfold = KFold(n_splits=k_folds, shuffle=True)
+        kfold = KFold(n_splits=k_folds, random_state=42, shuffle=True)
 
         models = []
         weights = []
@@ -724,10 +724,15 @@ class _RegressorKFold:
             validate_dataloaders.append(self.validate_dataloader)
             self.training_loss_list.append(epoch_training_loss_list)
             self.validation_loss_list.append(epoch_validation_loss_list)
+            
+        self.validate_dataloaders = validate_dataloaders
+        self.train_dataloaders = train_dataloaders
         self.losses = losses
         min_loss = min(losses)
         self.min_loss = min_loss
         ind = losses.index(min_loss)
+        self.models = models
+        self.weights = weights
         self.model = models[ind]
         self.model.load_state_dict(weights[ind])
         self.model.eval()
@@ -1018,7 +1023,7 @@ class _ClassifierKFold:
         torch.manual_seed(42)
         
         # Define the K-fold Cross Validator
-        kfold = KFold(n_splits=k_folds, shuffle=True)
+        kfold = KFold(n_splits=k_folds, random_state=42, shuffle=True)
 
         models = []
         weights = []
@@ -1094,10 +1099,15 @@ class _ClassifierKFold:
             self.training_loss_list.append(epoch_training_loss_list)
             self.validation_accuracy_list.append(epoch_validation_accuracy_list)
             self.validation_loss_list.append(epoch_validation_loss_list)
+            
+        self.validate_dataloaders = validate_dataloaders
+        self.train_dataloaders = train_dataloaders
         self.accuracies = accuracies
         max_accuracy = max(accuracies)
         self.max_accuracy = max_accuracy
         ind = accuracies.index(max_accuracy)
+        self.models = models
+        self.weights = weights
         self.model = models[ind]
         self.model.load_state_dict(weights[ind])
         self.model.eval()
@@ -2058,7 +2068,6 @@ class DGL:
         for item in tqdm(dataset, desc='Predicting', leave=False):
             graph = item[0]
             pred = model(graph, graph.ndata[node_attr_key].float())
-            print(pred)
             values.append(round(pred.item(), 3))
         return values
     
@@ -2349,6 +2358,15 @@ class DGL:
             ext = path[len(path)-3:len(path)]
             if ext.lower() != ".pt":
                 path = path+".pt"
+        try:
+            for index, item in enumerate(model.models):
+                save_path = path[:-3] + '_' + str(index) + '.pt'
+                weights = model.weights[index]
+                item.load_state_dict(weights)
+                item.eval()
+                torch.save(item, save_path)
+            return model.save(path)
+        except:
             return model.save(path)
     
     @staticmethod
